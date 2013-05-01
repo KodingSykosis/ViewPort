@@ -252,7 +252,7 @@
                 config.layout = null;
             }
 
-            config.el.after(content.handle);
+            //config.el.after(content.handle);
 
             console.log('Region', name, config);
 
