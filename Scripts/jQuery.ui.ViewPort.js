@@ -35,6 +35,9 @@
             }
 
             return results;
+        },
+        firstCapital: function(s) {
+            return s.replace(/^(.)/, function(a, l) { return l.toUpperCase(); });
         }
     };
 
@@ -62,7 +65,13 @@
             resizable: false,
             layout: 'none',
             hidden: false,
-            handle: ''
+            minSize: 40
+        },
+        resizeHandles: {
+            north: 's',
+            south: 'n',
+            east: 'w',
+            west: 'e'
         }
     };
 
@@ -102,20 +111,7 @@
             bottom: 0
         }
     };
-
-    var handleTemplates = {
-        bar: {
-            cls: 'ui-viewport-{name}-handle-bar',
-            size: 4,
-            icon: 'ui-icon-grip-solid-{orientation}'
-        },
-        button: {
-            cls: 'ui-viewport-{name}-handle-button',
-            size: 0,
-            icon: 'ui-icon-carot-1-{name}'
-        }
-    };
-
+    
     $.widget('ui.viewport', {
         options: {
             north: undefined,
@@ -140,10 +136,18 @@
             
             //TODO: Add collapse, resize, and hover fun
             this.reset();
+            
+            var self = this;
+            $.each(this.regions, function(regionName, config) {
+                if (!config) return;
+                self._initResizable(config);
+            });
         },
         
-        reset: function () {
-            var idx = {};
+        reset: function (skipRefresh) {
+            var self = this,
+                idx = {},
+                len = 0;
             
             $.each(this.regions, function (regionName, config) {
                 if (!config) return;
@@ -161,8 +165,18 @@
             });
             
             Array.prototype.sort.call(idx, function (a, b) { return a - b; });
-            this.index = idx;
-            this.refresh();
+            this.index = {};
+
+            $.each(idx, function(prop, value) {
+                self.index[len] = value;
+                self.regions[value].index = len++;
+            });
+
+            this.index.length = len++;
+            
+            if (!skipRefresh) {
+                this.refresh();
+            }
         },
 
         refresh: function () {
@@ -176,6 +190,7 @@
             };
 
             $.each(this.index, function (idx, regionName) {
+                if (idx === 'lenth') return;
                 self.refreshRegion(regionName, true);
             });
         },
@@ -241,7 +256,7 @@
             }
 
             config.el = el;
-            config = $.extend({}, $.defaults.viewport.region, config);
+            config = $.extend({ name: name }, $.defaults.viewport.region, config);
             config.orientation = config.size === 'height' ? 'vertical' : 'horizontal';
             
             if (!config.index) {
@@ -252,11 +267,40 @@
                 config.layout = null;
             }
 
-            //config.el.after(content.handle);
-
+            config.el.data('ViewPort-Region', config.name);
             console.log('Region', name, config);
 
             return config;
+        },
+        
+        _initResizable: function (config) {
+            //Initialize the handle
+            if (!(config.resizable && this.index)) return;
+            var layout = regionLayout[config.name];
+            var resizeConfig = {
+                handles: $.defaults.viewport.resizeHandles[config.name],
+                resize: $.proxy(this._onRegionResizing, this)
+            };
+
+            if (config.maxSize) {
+                resizeConfig['max' + string.firstCapital(layout.size)] = config.maxSize;
+            }
+            
+            if (config.minSize) {
+                resizeConfig['min' + string.firstCapital(layout.size)] = config.minSize;
+            }
+            
+            config.alsoResize = $();
+
+            for (var i = config.index + 1, len = this.index.length; i < len; i++) {
+                var region = this.regions[this.index[i]];
+                if (config.orientation === region.orientation || region.name === 'center') {
+                    config.alsoResize = config.alsoResize.add(region.el);
+                }
+            }
+
+            config.el
+                .resizable(resizeConfig);
         },
 
         _buildRegion: function (config) {
@@ -278,36 +322,23 @@
             return el;
         },
         
-        _createHandle: function (regionConfig) {
-            var config,
-                templateName = regionConfig.handle;
-            
-            if (typeof templateName === "string") {
-                config = handleTemplates[templateName];
-            } else {
-                config = templateName;
-            }
-
-            var nodeConfig = {
-                tagName: 'div',
-                cls: string.format(config.cls, regionConfig)
-            };
-            
-            if (config.icon) {
-                nodeConfig.append = [
-                    buildNode({
-                        tagName: 'span',
-                        cls: 'ui-icon ' + config.icon
-                    })
-                ];
-            }
-
-            regionConfig.handle = buildNode(nodeConfig);
-        },
-
         _isRegionConfig: function (config) {
             return typeof config === "object" &&
                    typeof config.length !== "number";
+        },
+        
+        _onRegionResizing: function(event, ui) {
+            var name = ui.originalElement.data('ViewPort-Region');
+            var config = this.regions[name];
+            var layout = regionLayout[name];
+            var css = {};
+
+            console.log('Resizing Region', name, config);
+
+            css[layout.position] = ui.size[layout.size];
+
+            config.alsoResize
+                .css(css);
         }
     });
 })(jQuery);

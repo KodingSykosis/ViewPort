@@ -4,11 +4,15 @@
             north: {
                 index: 1,
                 el: '#north',
-                size: 75
+                size: 75,
+                maxSize: 200,
+                minSize: 40,
+                resizable: true
             },
             west: {
                 index: 2,
-                el: '#west'
+                el: '#west',
+                resizable: true
             },
             center: {
                 index: 3,
