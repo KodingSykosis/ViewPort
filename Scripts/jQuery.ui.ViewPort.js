@@ -209,6 +209,23 @@
             }
         },
         
+        collapse: function (regionName) {
+            var config = this.regions[regionName];
+            if (!config.el.is(':visible')) return;
+
+            var layout = regionLayout[regionName];
+
+            config.originalSize = config.el[layout.size]();
+            
+        },
+        
+        expand: function (regionName) {
+            var config = this.regions[regionName];
+            if (config.el.is(':visible')) return;
+            
+
+        },
+        
         _doRegionLayout: function(config, reset) {
             var el = config.el,
                 css = $.extend(config.cssLayout,
