@@ -15,9 +15,29 @@
                 resizable: true
             },
             center: {
-                index: 3,
                 el: '#center'
+            },
+            south: {
+                index: 3,
+                el: '#south',
+                size: 75,
+                maxSize: 200,
+                minSize: 40,
+                resizable: true
+            },
+            east: {
+                index: 4,
+                el: '#east',
+                resizable: true
             }
+        });
+
+        $('#center').viewport({
+            north: true,
+            center: true,
+            east: true,
+            south: true,
+            west: true
         });
     });
 })(jQuery);

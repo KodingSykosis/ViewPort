@@ -2,6 +2,7 @@
  *      Author: KodingSykosis
  *        Date: 04/26/2013
  *     Version: 1.0
+ *     License: GPL v3 (see License.txt or http://www.gnu.org/licenses/)
  * Description: This widget provides a method to manage
  *              the viewport.
  *
@@ -14,12 +15,13 @@
     //I didn't extend String to prevent overwriting an existing format implementation
     var string = {
         format: function () {
-            var results = arguments[0], re;
+            var results = arguments[0], re,
+                args = Array.prototype.splice.call(arguments, 1);
 
-            if (typeof arguments[1] == 'object') {
-                for (var prop in arguments[1]) {
+            if (typeof args[0] == 'object') {
+                for (var prop in args[0]) {
                     re = new RegExp('{' + prop + '(?:\!([^\}]+)|\:([^\}]+))?}', 'g');
-                    var val = arguments[1][prop];
+                    var val = args[0][prop];
                     if (typeof val != 'undefined') {
                         if (typeof val == 'object') val = $.param(val);
                         results = results.replace(re, '$1' + val + '$2');
@@ -28,16 +30,16 @@
 
                 results = results.replace(/{[^}]*}/g, '');
             } else {
-                for (var i = 1, len = arguments.length; i < len; i++) {
+                for (var i = 0, len = args.length; i < len; i++) {
                     re = new RegExp('{' + i + '(?:\!([^\}]+)|\:([^\}]+))?}', 'g');
-                    results = results.replace(re, '$1' + arguments[i] + '$2');
+                    results = results.replace(re, '$1' + args[i] + '$2');
                 }
             }
 
             return results;
         },
         firstCapital: function(s) {
-            return s.replace(/^(.)/, function(a, l) { return l.toUpperCase(); });
+            return (s || '').replace(/^(.)/, function(a, l) { return l.toUpperCase(); });
         }
     };
 
@@ -62,7 +64,7 @@
         region: {
             size: 150,
             collapsable: true,
-            resizable: false,
+            resizable: true,
             layout: 'none',
             hidden: false,
             minSize: 40
@@ -81,28 +83,28 @@
             left: 0,
             right: 0,
             size: 'height',
-            position: 'top'
+            dock: 'top'
         },
         south: {
             bottom: 0,
             left: 0,
             right: 0,
             size: 'height',
-            position: 'bottom'
+            dock: 'bottom'
         },
         east: {
             right: 0,
             top: 0,
             bottom: 0,
             size: 'width',
-            position: 'right'
+            dock: 'right'
         },
         west: {
             left: 0,
             top: 0,
             bottom: 0,
             size: 'width',
-            position: 'left'
+            dock: 'left'
         },
         center: {
             top: 0,
@@ -159,7 +161,10 @@
                 if (config.hidden) {
                     config.el.hide();
                 } else {
-                    idx[config.index] = regionName;
+                    if (regionName !== 'center') {
+                        idx[config.index] = regionName;
+                    }
+                    
                     config.el.show();
                 }
             });
@@ -167,11 +172,14 @@
             Array.prototype.sort.call(idx, function (a, b) { return a - b; });
             this.index = {};
 
-            $.each(idx, function(prop, value) {
+            $.each(idx, function (prop, value) {
+                if (value === 'center') return;
                 self.index[len] = value;
                 self.regions[value].index = len++;
             });
 
+            this.index[len] = 'center';
+            this.regions['center'].index = len++;
             this.index.length = len++;
             
             if (!skipRefresh) {
@@ -199,31 +207,65 @@
             var config = this.regions[regionName];
             if (!config) return;
             
-
-            console.debug('refreshing region', regionName, config);
             this._doRegionLayout(config, reset);
             
             if (config.layout) {
-                console.debug('triggering layout', config.layout, 'for region', regionName);
                 config.el[config.layout]();
             }
         },
         
         collapse: function (regionName) {
-            var config = this.regions[regionName];
-            if (!config.el.is(':visible')) return;
-
-            var layout = regionLayout[regionName];
-
-            config.originalSize = config.el[layout.size]();
-            
+            this.toggle(regionName, false);
         },
         
         expand: function (regionName) {
-            var config = this.regions[regionName];
-            if (config.el.is(':visible')) return;
-            
+            this.toggle(regionName, true);
+        },
 
+        toggle: function(regionName, expand) {
+            var config = this.regions[regionName];
+            var layout = regionLayout[regionName];
+            var css = {};
+
+            if (typeof expand === 'undefined') {
+                expand = !config.el.is(':visible');
+            }
+
+            if (expand === config.el.is(':visible')) {
+                return;
+            }
+
+            if (!expand) {
+                config.originalSize = config.el[layout.size]();
+            } else {
+                css[layout.size] = 0;
+                config.el
+                      .css(css)
+                      .show();
+            }
+
+            css[layout.size] = expand ? (config.originalSize || config.size) : 0;
+            var self = this;
+            config.el
+                  .animate(css, {
+                      step: $.proxy(this._onRegionResizing, this),
+                      complete: function () {
+                          self._onToggleComplete.call(self, config);
+                      }
+                  });
+        },
+
+        size: function(regionName, size) {
+            var config = this.regions[regionName];
+
+            if (size) {
+                var layout = regionLayout[config.name];
+                config.currentSize = config.el[layout.size]();
+                
+                this.refresh();
+            }
+
+            return config.currentSize;
         },
         
         _doRegionLayout: function(config, reset) {
@@ -236,7 +278,6 @@
             if (reset) {
                 $.each(this.offsets, function(side, offset) {
                     if (typeof css[side] !== 'undefined') {
-                        console.log('Updating side', side, css[side], offset);
                         css[side] = Math.max(css[side], offset) || 0;
                     }
                 });
@@ -244,19 +285,15 @@
                 config.cssLayout = $.extend({}, css);
             }
 
-            console.debug('Applying layout to region', config.name, config.el, css);
-            
             if (css.size) {
                 css[css.size] = config.currentSize;
                 delete css.size;
             }
 
-            if (css.position) {
-                this.offsets[css.position] += config.currentSize;
-                delete css.position;
+            if (css.dock) {
+                this.offsets[css.dock] += config.currentSize;
+                delete css.dock;
             }
-            
-            console.log('Offsets updated', this.offsets);
             
             el.css(css);
         },
@@ -264,6 +301,10 @@
         _initRegion: function (config, name) {
             if (!config) return null;
             var el;
+
+            if (config === true) {
+                config = {};
+            }
 
             if (this._isRegionConfig(config)) {
                 el = this._buildRegion(config);
@@ -285,18 +326,18 @@
             }
 
             config.el.data('ViewPort-Region', config.name);
-            console.log('Region', name, config);
-
             return config;
         },
         
         _initResizable: function (config) {
             //Initialize the handle
-            if (!(config.resizable && this.index)) return;
+            if (!(config.resizable && this.index) || config.name === 'center') return;
             var layout = regionLayout[config.name];
             var resizeConfig = {
                 handles: $.defaults.viewport.resizeHandles[config.name],
-                resize: $.proxy(this._onRegionResizing, this)
+                resize: $.proxy(this._onRegionResizing, this),
+                start: $.proxy(this._onRegionResizeStart, this),
+                stop: $.proxy(this._onRegionResizeStop, this)
             };
 
             if (config.maxSize) {
@@ -316,6 +357,19 @@
                 }
             }
 
+            // Hack to work around
+            // bugfix for http://bugs.jqueryui.com/ticket/1749
+            if (config.name === 'south') {
+                config.el.data('ViewPort-OrgPosition', {
+                    top: config.el.css('top')
+                });
+            } else if (config.name === 'east') {
+                config.el.data('ViewPort-OrgPosition', {
+                    left: config.el.css('left')
+                });
+            }
+            
+            
             config.el
                 .resizable(resizeConfig);
         },
@@ -334,7 +388,7 @@
             }
 
             var el = buildNode({ tagName: 'div' });
-            el.appendTo(this.Element);
+            el.appendTo(this.element);
             
             return el;
         },
@@ -344,18 +398,43 @@
                    typeof config.length !== "number";
         },
         
-        _onRegionResizing: function(event, ui) {
-            var name = ui.originalElement.data('ViewPort-Region');
-            var config = this.regions[name];
-            var layout = regionLayout[name];
-            var css = {};
+        _onRegionResizing: function (event, ui) {
+            this._doResizeHack(ui);
+            
+            var el = $(ui.originalElement || ui.elem);
+            var regionName = el.data('ViewPort-Region');
+            var layout = regionLayout[regionName];
+            var size = ui.prop === layout.size ? ui.now : ui.size[layout.size];
+            
+            this.size(regionName, size);
+        },
+        
+        _onRegionResizeStart: function(event, ui) {
+            this._doResizeHack(ui);
+        },
+        
+        _onRegionResizeStop: function(event, ui) {
+            this._doResizeHack(ui);
+        },
+        
+        _doResizeHack: function (ui) {
+            var el = $(ui.originalElement || ui.elem);
+            var regionName = el.data('ViewPort-Region');
+            if (regionName !== 'south' && regionName !== 'east') return;
 
-            console.log('Resizing Region', name, config);
+            el.css(el.data('ViewPort-OrgPosition'));
+        },
 
-            css[layout.position] = ui.size[layout.size];
+        _onToggleComplete: function (config) {
+            var layout = regionLayout[config.name],
+                el = config.el;
 
-            config.alsoResize
-                .css(css);
+            config.currentSize = el[layout.size]();
+            el.resize();
+
+            if (config.currentSize === 0) {
+                el.hide();
+            }
         }
     });
 })(jQuery);
