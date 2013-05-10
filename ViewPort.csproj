@@ -57,10 +57,13 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="css\Example.css" />
     <Content Include="css\jQuery.ui.ViewPort.css" />
     <Content Include="Index.html" />
     <Content Include="License.txt" />
     <Content Include="Scripts\Example.js" />
+    <Content Include="Scripts\jQuery.layout.js" />
+    <Content Include="Scripts\jQuery.layout.Row.js" />
     <Content Include="Scripts\jQuery.ui.ViewPort.js" />
     <Content Include="Web.config" />
   </ItemGroup>

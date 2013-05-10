@@ -15,7 +15,12 @@
                 resizable: true
             },
             center: {
-                el: '#center'
+                el: '#center',
+                layout: {
+                    render: 'row',
+                    height: 32,
+                    margin: 2
+                }
             },
             south: {
                 index: 3,
@@ -32,12 +37,12 @@
             }
         });
 
-        $('#center').viewport({
-            north: true,
-            center: true,
-            east: true,
-            south: true,
-            west: true
-        });
+        //$('#center').viewport({
+        //    north: true,
+        //    center: true,
+        //    east: true,
+        //    south: true,
+        //    west: true
+        //});
     });
 })(jQuery);

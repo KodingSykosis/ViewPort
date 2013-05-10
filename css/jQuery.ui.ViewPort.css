@@ -17,7 +17,6 @@ body.ui-viewport {
 .ui-viewport-east,
 .ui-viewport-center {
     position: absolute;
-    border: 1px solid green;
 }
 
 .ui-viewport-north,

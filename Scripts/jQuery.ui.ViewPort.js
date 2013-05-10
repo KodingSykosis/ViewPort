@@ -210,7 +210,7 @@
             this._doRegionLayout(config, reset);
             
             if (config.layout) {
-                config.el[config.layout]();
+                config.el.layout(config.layout);
             }
         },
         
@@ -321,7 +321,7 @@
                 config.index = el.index();
             }
             
-            if (!$.fn[config.layout]) {
+            if (config.layout && !$.layouts[config.layout.render]) {
                 config.layout = null;
             }
 
