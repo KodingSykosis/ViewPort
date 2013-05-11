@@ -37,12 +37,6 @@
             }
         });
 
-        //$('#center').viewport({
-        //    north: true,
-        //    center: true,
-        //    east: true,
-        //    south: true,
-        //    west: true
-        //});
+        $('.row').layout('column');
     });
 })(jQuery);

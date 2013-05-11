@@ -4,7 +4,7 @@
         cls.prototype = prototype;
 
         cls = new cls();
-        cls.element = element;
+        cls.element = $(element);
 
         $(element).data('layout', cls);
         return cls;
@@ -30,6 +30,10 @@
                     resize: $.proxy(this._onResize, this)
                 });
 
+            $(window).on({
+                resize: $.proxy(this._onResize, this)
+            });
+
             this.refresh();
             return this.element;
         },
@@ -54,7 +58,17 @@
     };
     
     $.fn.layout = function (method) {
-        var cls = $(this).data('layout');
+        var element = $(this);
+        if (element.length > 1) {
+            var args = arguments;
+            this.each(function() {
+                $(this).layout.apply(this, args);
+            });
+            
+            return this;
+        }
+
+        var cls = element.data('layout');
         var initial = false;
         
         if (typeof cls === 'undefined') {
@@ -71,6 +85,8 @@
             } else {
                 cls.refresh();
             }
+        } else if (cls && typeof method == 'string' && $.layouts[method]) {
+            return cls.init.call(cls, { render: method });
         } else {
             $.error('Method ' + method + ' does not exist on jQuery.layout');
         }

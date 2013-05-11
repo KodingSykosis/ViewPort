@@ -62,8 +62,9 @@
     <Content Include="Index.html" />
     <Content Include="License.txt" />
     <Content Include="Scripts\Example.js" />
+    <Content Include="Scripts\jQuery.layout.column.js" />
     <Content Include="Scripts\jQuery.layout.js" />
-    <Content Include="Scripts\jQuery.layout.Row.js" />
+    <Content Include="Scripts\jQuery.layout.row.js" />
     <Content Include="Scripts\jQuery.ui.ViewPort.js" />
     <Content Include="Web.config" />
   </ItemGroup>
