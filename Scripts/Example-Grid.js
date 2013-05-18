@@ -22,20 +22,10 @@
                     margin: 2
                 }
             },
-            south: {
-                index: 3,
-                el: '#south',
-                size: 75,
-                maxSize: 200,
-                minSize: 40,
-                resizable: true
-            },
             east: {
-                index: 4,
+                index: 3,
                 el: '#east',
                 resizable: true,
-                size: 800,
-                maxSize: 800
             }
         });
 

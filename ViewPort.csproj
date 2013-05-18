@@ -57,12 +57,15 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Grid.html" />
     <Content Include="css\Example.css" />
     <Content Include="css\jQuery.ui.ViewPort.css" />
     <Content Include="Index.html" />
     <Content Include="License.txt" />
+    <Content Include="Scripts\Example-Grid.js" />
     <Content Include="Scripts\Example.js" />
     <Content Include="Scripts\jQuery.layout.column.js" />
+    <Content Include="Scripts\jQuery.layout.grid.js" />
     <Content Include="Scripts\jQuery.layout.js" />
     <Content Include="Scripts\jQuery.layout.row.js" />
     <Content Include="Scripts\jQuery.ui.ViewPort.js" />

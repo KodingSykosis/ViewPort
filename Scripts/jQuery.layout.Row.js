@@ -55,13 +55,13 @@
              }
 
              return {
-                 doLayout: function (element, config) {
-                     var css = applyConfig(element, config);
-                     element.children(':visible')
+                 doLayout: function (config) {
+                     var css = applyConfig(this, config);
+                     this.children(':visible')
                          .css(css);
                      
                      if (css.borderBottom && css.borderBottom != 'none') {
-                         element.children(':visible:first')
+                         this.children(':visible:first')
                              .css({
                                  borderTop: css.borderBottom,
                                  top: 0

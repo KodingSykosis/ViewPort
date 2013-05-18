@@ -40,7 +40,8 @@
         
         refresh: function() {
             this.render
-                .doLayout(this.element, this.config);
+                .doLayout
+                .call(this.element, this.config);
         },
         
         render: function(name) {
@@ -52,7 +53,7 @@
             return this.render;
         },
         
-        _onResize: function(event) {
+        _onResize: function() {
             this.refresh();
         }
     };
@@ -78,7 +79,9 @@
 
         // Method calling logic
         if (cls[method]) {
-            return cls[method].apply(cls, Array.prototype.slice.call(arguments, 1));
+            return cls[method].apply(cls, Array.prototype.splice.call(arguments, 1));
+        } else if (cls && cls.render[method]) {
+            return cls.render[method].apply(element, Array.prototype.splice.call(arguments, 1));
         } else if (cls && (typeof method === 'object' || !method)) {
             if (initial) {
                 return cls.init.apply(cls, arguments);
