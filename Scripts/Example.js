@@ -15,12 +15,7 @@
                 resizable: true
             },
             center: {
-                el: '#center',
-                layout: {
-                    render: 'row',
-                    height: 32,
-                    margin: 2
-                }
+                el: '#center'
             },
             south: {
                 index: 3,
@@ -38,7 +33,5 @@
                 maxSize: 800
             }
         });
-
-        $('.row').layout('column');
     });
 })(jQuery);
