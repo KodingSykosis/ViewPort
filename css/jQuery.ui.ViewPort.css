@@ -30,3 +30,12 @@ body.ui-viewport {
     top: 0;
     bottom: 0;
 }
+
+.ui-viewport-handle {
+    border-radius: 3px;
+    position: absolute;
+    top: auto;
+    left: auto;
+    height: auto;
+    widows: auto;
+}

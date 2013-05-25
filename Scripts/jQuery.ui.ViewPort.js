@@ -12,6 +12,72 @@
  ***/
 
 (function ($) {
+    //Workaround for defect in jQueryUI Resizable
+    $.ui.resizable.prototype.viewport_FixMe = function () {
+        var that = this,
+            o = this.options;
+        this._handles = $();
+        for (key in this.handles) {
+            if (this.handles[key].length)
+            this._handles = this._handles.add(this.handles[key]);
+        }
+
+        this._handles.show();
+        
+        //Matching axis name
+        this._handles.mouseover(function () {
+            if (!that.resizing) {
+                if (this.className) {
+                    axis = this.className.match(/ui-resizable-(se|sw|ne|nw|n|e|s|w)/i);
+                }
+                //Axis, default = se
+                that.axis = axis && axis[1] ? axis[1] : "se";
+            }
+        });
+
+        //If we want to auto hide the elements
+        if (o.autoHide) {
+            this._handles.hide();
+            $(this.element)
+				.addClass("ui-resizable-autohide")
+				.mouseenter(function () {
+				    if (o.disabled) {
+				        return;
+				    }
+				    $(this).removeClass("ui-resizable-autohide");
+				    that._handles.show();
+				})
+				.mouseleave(function () {
+				    if (o.disabled) {
+				        return;
+				    }
+				    if (!that.resizing) {
+				        $(this).addClass("ui-resizable-autohide");
+				        that._handles.hide();
+				    }
+				});
+        }
+        
+        if (!$.contains(this.element, this._handles)) {
+            var el = this.element;
+            
+            this.element
+                .add(this._handles)
+                .wrapAll($('<div>', {
+                    'class': 'ui-wrapper'
+                }));
+
+            this.wrapper = this.element.parent('.ui-wrapper');
+            this.element = this.wrapper;
+            this._mouseInit();
+            this.element = el;
+        } else this._mouseInit();
+
+        //Initialize the mouse interaction
+        
+    };
+
+
     //I didn't extend String to prevent overwriting an existing format implementation
     var string = {
         format: function () {
@@ -67,14 +133,23 @@
             resizable: true,
             layout: 'none',
             hidden: false,
-            minSize: 40
+            minSize: 40,
+            handleSize: 10
         },
         resizeHandles: {
             north: 's',
             south: 'n',
             east: 'w',
             west: 'e'
-        }
+        },
+        handle: {
+            'tagName': 'div',
+            'class': 'ui-viewport-handle ui-widget-overlay ui-resizable-handle ui-resizable-{direction}'
+        },
+        regionCSS: {
+            
+        },
+        regionCls: 'ui-widget-content'
     };
 
     var regionLayout = {
@@ -83,28 +158,32 @@
             left: 0,
             right: 0,
             size: 'height',
-            dock: 'top'
+            dock: 'top',
+            direction: 's'
         },
         south: {
             bottom: 0,
             left: 0,
             right: 0,
             size: 'height',
-            dock: 'bottom'
+            dock: 'bottom',
+            direction: 'n'
         },
         east: {
             right: 0,
             top: 0,
             bottom: 0,
             size: 'width',
-            dock: 'right'
+            dock: 'right',
+            direction: 'w'
         },
         west: {
             left: 0,
             top: 0,
             bottom: 0,
             size: 'width',
-            dock: 'left'
+            dock: 'left',
+            direction: 'e'
         },
         center: {
             top: 0,
@@ -270,10 +349,10 @@
         
         _doRegionLayout: function(config, reset) {
             var el = config.el,
+                layout = regionLayout[config.name],
                 css = $.extend(config.cssLayout,
-                    reset ? 
-                    regionLayout[config.name] :
-                        {});
+                    reset ? layout : {},
+                    $.defaults.viewport.regionCSS);
 
             if (reset) {
                 $.each(this.offsets, function(side, offset) {
@@ -292,10 +371,24 @@
 
             if (css.dock) {
                 this.offsets[css.dock] += config.currentSize;
+            }
+            
+            if (config.handle != null && config.handle.length > 0) {
+                var handleCss = $.extend({}, css);
+                handleCss[css.dock] = this.offsets[css.dock];
+                handleCss[layout.size] = $.defaults.viewport.region.handleSize;
+
+                config.handle.css(handleCss);
+                this.offsets[css.dock] += handleCss[layout.size];
+            }
+            
+            if (css.dock) {
                 delete css.dock;
             }
             
-            el.css(css);
+            el.css(css)
+              .addClass($.defaults.viewport.regionCls)
+              .addClass(config.cls);
         },
 
         _initRegion: function (config, name) {
@@ -321,8 +414,17 @@
                 config.index = el.index();
             }
             
-            if (config.layout && !$.layouts[config.layout.render]) {
+            if (config.layout && (!$.layouts || !$.layouts[config.layout.render])) {
                 config.layout = null;
+            }
+            
+            if (config.name != 'center' && (config.handle == null || config.handle.length == 0)) {
+                config.handle = this._buildRegionHandle(config);
+                config.el.before(config.handle);
+            }
+            
+            if (config.name == 'center') {
+                config.handle = null;
             }
 
             config.el.data('ViewPort-Region', config.name);
@@ -333,12 +435,15 @@
             //Initialize the handle
             if (!(config.resizable && this.index) || config.name === 'center') return;
             var layout = regionLayout[config.name];
+            var resizeHandle = {};
             var resizeConfig = {
-                handles: $.defaults.viewport.resizeHandles[config.name],
                 resize: $.proxy(this._onRegionResizing, this),
                 start: $.proxy(this._onRegionResizeStart, this),
                 stop: $.proxy(this._onRegionResizeStop, this)
             };
+
+            resizeHandle[$.defaults.viewport.resizeHandles[config.name]] = config.handle;
+            resizeConfig.handles = resizeHandle;
 
             if (config.maxSize) {
                 resizeConfig['max' + string.firstCapital(layout.size)] = config.maxSize;
@@ -372,6 +477,9 @@
             
             config.el
                 .resizable(resizeConfig);
+            
+            //FixMe: Bug in jQueryUI Resizable
+            config.el.resizable('viewport_FixMe');
         },
 
         _buildRegion: function (config) {
@@ -391,6 +499,22 @@
             el.appendTo(this.element);
             
             return el;
+        },
+        
+        _buildRegionHandle: function (config) {
+            var domConfig = $.extend({}, $.defaults.viewport.handle);
+            var layout = regionLayout[config.name];
+            var css = {};
+            
+            domConfig['class'] = string.format(domConfig['class'], layout);
+
+            var el = buildNode(domConfig);
+            css[layout.size] = $.defaults.viewport.region.handleSize;
+
+            return el.uniqueId()
+                .css(css)
+                .disableSelection()
+                .hide();
         },
         
         _isRegionConfig: function (config) {
