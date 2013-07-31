@@ -193,7 +193,7 @@
         }
     };
     
-    $.widget('ui.viewport', {
+    $.widget('kodingsykosis.viewport', {
         options: {
             north: undefined,
             south: undefined,
